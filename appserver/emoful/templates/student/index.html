@@ -1,0 +1,100 @@
+<html>
+    <head>
+        <script src="../static/js/face-api.min.js"></script>
+        <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    </head>
+    <body>
+        <div  style="position: relative">
+            <video id="video" onloadedmetadata="onPlay(this)"  muted autoplay width="640" height="480"></video>
+            <canvas id="facecanvas" style="  position: absolute;  top: 0; left: 0;" width="640" height="480"></canvas>
+        </div>
+        <script>
+	const canvas = document.getElementById( 'facecanvas' );
+	const videoEl = document.getElementById( 'video' );
+	const inputSize = 224;
+	const scoreThreshold = 0.5;
+    const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold });
+    
+    const apiServerHost = "http://localhost:8000/emoful/registerEmotion";
+
+    function generateUuid() {
+        // https://github.com/GoogleChrome/chrome-platform-analytics/blob/master/src/internal/identifier.js
+        // const FORMAT: string = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
+        let chars = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".split("");
+        for (let i = 0, len = chars.length; i < len; i++) {
+            switch (chars[i]) {
+                case "x":
+                    chars[i] = Math.floor(Math.random() * 16).toString(16);
+                    break;
+                case "y":
+                    chars[i] = (Math.floor(Math.random() * 4) + 8).toString(16);
+                    break;
+            }
+        }
+        return chars.join("");
+    }
+
+    const userId = generateUuid();
+
+    // async function sha256(str) {
+    //    // Convert string to ArrayBuffer
+    //    const buff = new Uint8Array([].map.call(str, (c) => c.charCodeAt(0))).buffer;
+    //    // Calculate digest
+    //    const digest = await crypto.subtle.digest('SHA-256', buff);
+    //    // Convert ArrayBuffer to hex string
+    //    // (from: https://stackoverflow.com/a/40031979)
+    //    return [].map.call(new Uint8Array(digest), x => ('00' + x.toString(16)).slice(-2)).join('');
+    // }
+
+    function POSTJsonData(request, URL){
+        var json_text = JSON.stringify(request);
+
+        xhr = new XMLHttpRequest;
+        xhr.onload = function(){
+            var res = xhr.responseText;
+            //if(res.length > 0) alert(res);
+        };
+        xhr.onerror = function(){
+            var res = xhr.responseText;
+            if(res.length > 0) alert(res);
+        }
+
+        xhr.open('POST', URL, true);    //(1)
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(json_text);
+    }
+
+	async function onPlay()
+	{
+            if(videoEl.paused || videoEl.ended || !faceapi.nets.tinyFaceDetector.params)
+                return setTimeout(() => onPlay(), 1000)
+	    
+            const result = await faceapi.detectSingleFace(videoEl, options).withFaceExpressions()
+            if (result) {
+                const tm = result["expressions"]
+                var request = tm
+                request['userId'] = userId
+                console.log(request)
+                POSTJsonData(request, apiServerHost)
+
+                //const dims = faceapi.matchDimensions(canvas, videoEl, true)
+                //const resizedResult = faceapi.resizeResults(result, dims)
+                
+            }
+            setTimeout(() => onPlay(), 1000)
+  	};
+	    
+        async function run(){
+            await faceapi.nets.tinyFaceDetector.load('../static/models')
+            await faceapi.loadFaceExpressionModel('../static/models')
+	    const stream = await navigator.mediaDevices.getUserMedia({ video: {} })
+	    videoEl.srcObject = stream;
+        }
+
+      	$(document).ready(function() {
+            run();
+        });
+	    
+        </script>
+    </body>
+</html>

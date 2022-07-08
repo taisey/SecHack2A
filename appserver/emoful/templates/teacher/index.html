@@ -1,0 +1,66 @@
+<html>
+    <head>
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    </head>
+    <body>
+        <!--Div that will hold the pie chart-->
+        <div id="chart_div"></div>
+        <script>
+            const URL = "http://localhost:8000/emoful/summarizeEmotion"
+            function GETJsonDataAndDraw(URL){
+
+                xhr = new XMLHttpRequest;
+                xhr.onload = function(){
+                    var res = xhr.responseText;
+                    drawChart(JSON.parse(res))
+                    //if(res.length > 0) alert(res);
+                };
+                xhr.onerror = function(){
+                    var res = xhr.responseText;
+                    return res;
+                    if(res.length > 0) alert(res);
+                }
+
+                xhr.open('GET', URL, true);    //(1)
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.send();
+
+            }
+        
+            // Load the Visualization API and the corechart package.
+            google.charts.load('current', {'packages':['corechart']});
+
+            // Set a callback to run when the Google Visualization API is loaded.
+            google.charts.setOnLoadCallback(function(){setInterval(function(){GETJsonDataAndDraw(URL)}, 5000)});
+            // Callback that creates and populates a data table,
+            // instantiates the pie chart, passes in the data and
+            // draws it.
+            function drawChart(emotionData) {
+              console.log(emotionData)
+              console.log(emotionData["angry"])
+              // Create the data table.
+              var data = new google.visualization.DataTable();
+              data.addColumn('string', 'emotion');
+              data.addColumn('number', 'possibility');
+              data.addRows([
+                ['Angry', emotionData["angry"]],
+                ['Sad', emotionData["sad"]],
+                ['Disgusted', emotionData["disgusted"]],
+                ['Fearful', emotionData["fearful"]],
+                ['Happy', emotionData["happy"]],
+                ['Neutral', emotionData["neutral"]],
+                ['Surprised', emotionData["surprised"]]
+              ]);
+              // Set chart options
+              var options = {'title':'EMOTION SUMMARY',
+                             'width':400,
+                             'height':300};
+
+              // Instantiate and draw our chart, passing in some options.
+              var chart = new google.visualization.BarChart(document.getElementById('chart_div'));
+              chart.draw(data, options);
+            }
+        </script>
+   
+    </body>
+</html>
